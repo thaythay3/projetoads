@@ -1,91 +1,134 @@
 import "./App.css";
+import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 
-const fotos = [
-  {
-    arquivo: "foto1.png",
-    titulo: "Artesanato feito à mão",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 2.png",
-    titulo: "Trabalhos artesanais",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 3.png",
-    titulo: "Criatividade e tradição",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 4.png",
-    titulo: "Peças artesanais",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 5.png",
-    titulo: "Detalhes feitos à mão",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 6.png",
-    titulo: "Trabalho artesanal",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 8.png",
-    titulo: "Arte e criatividade",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 9.png",
-    titulo: "Produção artesanal",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 10.png",
-    titulo: "Peças que contam histórias",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 11.png",
-    titulo: "Artesanato regional",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 12.png",
-    titulo: "Trabalhos dos associados",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 13.png",
-    titulo: "Criatividade em cada detalhe",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 14.png",
-    titulo: "Produção artesanal",
-    categoria: "Artesanato",
-  },
-  {
-    arquivo: "foto 16.png",
-    titulo: "Encontro e cultura",
-    categoria: "Projetos",
-  },
-  {
-    arquivo: "foto 17.png",
-    titulo: "Artesãos e comunidade",
-    categoria: "Projetos",
-  },
+const fotosArtesanato = [
+  "foto1.png",
+  "foto 2.png",
+  "foto 3.png",
+  "foto 5.png",
+  "foto 6.png",
+  "foto 8.png",
+  "foto 9.png",
+  "foto 10.png",
+  "foto 11.png",
+  "foto 12.png",
+  "foto 13.png",
 ];
+
+
+type GalleryRow = {
+  items: string[];
+  height: number;
+};
+
+function JustifiedGallery({ files }: { files: string[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const updateWidth = () => setContainerWidth(element.clientWidth);
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const handleImageLoad = (file: string, event: SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    if (!image.naturalWidth || !image.naturalHeight) return;
+
+    const ratio = image.naturalWidth / image.naturalHeight;
+    setRatios((current) => {
+      if (current[file] === ratio) return current;
+      return { ...current, [file]: ratio };
+    });
+  };
+
+  const rows = useMemo<GalleryRow[]>(() => {
+    if (!containerWidth) return [];
+
+    const gap = 15;
+    const targetHeight =
+      containerWidth <= 560 ? 155 : containerWidth <= 850 ? 220 : 300;
+
+    const result: GalleryRow[] = [];
+    let currentItems: string[] = [];
+    let ratioSum = 0;
+
+    files.forEach((file, index) => {
+      const ratio = ratios[file] ?? 1.25;
+      currentItems.push(file);
+      ratioSum += ratio;
+
+      const estimatedWidth =
+        ratioSum * targetHeight + gap * (currentItems.length - 1);
+      const shouldCloseRow =
+        estimatedWidth >= containerWidth || index === files.length - 1;
+
+      if (shouldCloseRow) {
+        const rowHeight = Math.max(
+          130,
+          (containerWidth - gap * (currentItems.length - 1)) / ratioSum,
+        );
+
+        result.push({
+          items: currentItems,
+          height: rowHeight,
+        });
+
+        currentItems = [];
+        ratioSum = 0;
+      }
+    });
+
+    return result;
+  }, [containerWidth, files, ratios]);
+
+  return (
+    <div ref={containerRef} className="gallery-preview">
+      {rows.map((row, rowIndex) => (
+        <div
+          className="gallery-row"
+          key={`gallery-row-${rowIndex}`}
+          style={{ height: `${row.height}px` }}
+        >
+          {row.items.map((arquivo, index) => (
+            <figure
+              className="gallery-item"
+              key={arquivo}
+              style={{
+                width: `${Math.max(
+                  1,
+                  (ratios[arquivo] ?? 1.25) * row.height,
+                )}px`,
+              }}
+            >
+              <img
+                src={`/fotos/${arquivo}`}
+                alt={`Trabalho artesanal da Casa do Artesão ${index + 1}`}
+                loading="lazy"
+                onLoad={(event) => handleImageLoad(arquivo, event)}
+              />
+              <span className="gallery-hover" aria-hidden="true" />
+            </figure>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function App() {
   return (
     <div className="site">
-
-      {/* HEADER */}
       <header className="header">
         <div className="container header-inner">
-
           <a href="#inicio" className="brand">
             <img
               src="/logocasadoartesao.png"
@@ -102,31 +145,22 @@ function App() {
               Fale conosco
             </a>
           </nav>
-
         </div>
       </header>
 
       <main>
-
-        {/* HERO */}
         <section className="hero" id="inicio">
           <div className="container hero-content">
-
             <div className="hero-text">
-
-              <span className="eyebrow">
-                Associação Casa do Artesão
-              </span>
+              <span className="eyebrow">Associação Casa do Artesão</span>
 
               <h1>
-                Artesanato que
-                <span> conta histórias.</span>
+                Artesanato que<span> conta histórias.</span>
               </h1>
 
               <p>
-                Uma associação que reúne artesãos, criatividade e cultura,
-                valorizando o trabalho artesanal e a identidade de
-                Ponta Grossa e dos Campos Gerais.
+                Uma associação que reúne artesãos e artesãs, valorizando o trabalho artesanal,
+                a cultura e a identidade de Ponta Grossa e dos Campos Gerais.
               </p>
 
               <div className="hero-actions">
@@ -138,7 +172,6 @@ function App() {
                   Como chegar
                 </a>
               </div>
-
             </div>
 
             <div className="hero-logo">
@@ -147,298 +180,190 @@ function App() {
                 alt="Logo da Casa do Artesão"
               />
             </div>
-
           </div>
         </section>
 
-        {/* INTRO */}
         <section className="intro">
           <div className="container intro-grid">
-
             <div>
-              <span className="section-label">
-                Nossa essência
-              </span>
+              <span className="section-label">Nossa essência</span>
 
               <h2>
-                Um espaço de encontro entre
-                <span> pessoas, arte e cultura.</span>
+                Um espaço de encontro entre<span> pessoas, arte e cultura.</span>
               </h2>
             </div>
 
             <div className="intro-text">
               <p>
-                A Casa do Artesão reúne artesãos e artesãs que encontram
-                no trabalho manual uma forma de expressão, valorização
-                cultural e geração de renda.
+                A Casa do Artesão reúne artesãos e artesãs que encontram no
+                trabalho manual uma forma de expressão, valorização cultural e
+                geração de renda.
               </p>
 
               <p>
-                Mais do que um espaço de comercialização, a associação
-                aproxima a comunidade do artesanato e ajuda a preservar
-                conhecimentos e técnicas que passam de geração em geração.
+                Além da comercialização das peças, a associação aproxima a comunidade do
+                artesanato e valoriza a diversidade de trabalhos e técnicas
+                produzidos pelos associados.
               </p>
             </div>
-
           </div>
         </section>
 
-        {/* ASSOCIAÇÃO */}
         <section className="section section-light" id="associacao">
           <div className="container">
-
             <div className="section-heading">
               <div>
-                <span className="section-label">
-                  A Associação
-                </span>
+                <span className="section-label">A Associação</span>
 
                 <h2>
-                  Feita por artesãos,
-                  <span> para valorizar o artesanato.</span>
+                  Feita por artesãos,<span> para valorizar o artesanato.</span>
                 </h2>
               </div>
 
               <p>
-                A Associação Casa do Artesão é formada por pessoas que
-                transformam criatividade, conhecimento e dedicação
-                em trabalhos artesanais.
+                A Associação Casa do Artesão reúne cerca de 20 artesãos associados e tem
+                como principal atividade a produção e comercialização de peças
+                artesanais para geração de renda.
               </p>
             </div>
 
             <div className="association-cards">
-
               <article className="info-card">
                 <div className="card-number">01</div>
+
                 <h3>Cerca de 20 artesãos associados</h3>
+
                 <p>
-                  Pessoas com diferentes histórias, habilidades e formas
-                  de expressão através do artesanato.
+                  Pessoas que encontram no artesanato uma forma de trabalho, expressão e
+                  geração de renda.
                 </p>
               </article>
 
               <article className="info-card">
                 <div className="card-number">02</div>
-                <h3>Diversidade de técnicas</h3>
+
+                <h3>Mais de 40 tipos de produtos e técnicas</h3>
+
                 <p>
-                  Trabalhos artesanais produzidos com diferentes materiais,
-                  estilos e técnicas manuais.
+                  Trabalhos produzidos com diferentes materiais e técnicas, como
+                  tecido, madeira, pintura, amigurumi, EVA, patchwork, colagem e
+                  pontilhismo.
                 </p>
               </article>
 
               <article className="info-card">
                 <div className="card-number">03</div>
+
                 <h3>Cultura e comunidade</h3>
+
                 <p>
-                  Um espaço que aproxima artesãos, moradores, visitantes
-                  e iniciativas culturais.
+                  Um espaço que aproxima o artesanato da comunidade e também recebe
+                  produtos desenvolvidos em projetos e iniciativas culturais.
                 </p>
               </article>
-
             </div>
 
+            <div className="association-media">
+              <figure className="association-media-item">
+                <img
+                  src="/fotos/foto 4.png"
+                  alt="Pessoas reunidas em uma atividade da Casa do Artesão"
+                  loading="lazy"
+                />
+              </figure>
+
+              <figure className="association-media-item">
+                <img
+                  src="/fotos/foto 14.png"
+                  alt="Pessoas trabalhando em uma atividade na Concha Acústica"
+                  loading="lazy"
+                />
+              </figure>
+            </div>
           </div>
         </section>
 
-        {/* ARTESANATO */}
         <section className="section section-cream" id="artesanato">
           <div className="container">
-
             <div className="section-heading centered">
-              <span className="section-label">
-                Artesanato
-              </span>
+              <span className="section-label">Artesanato</span>
 
               <h2>
-                Trabalhos feitos à mão,
-                <span> com identidade.</span>
+                Trabalhos feitos à mão,<span> com identidade.</span>
               </h2>
 
               <p>
-                Conheça um pouco da diversidade de trabalhos produzidos
-                pelos artesãos associados.
+                Conheça um pouco da diversidade de trabalhos artesanais presentes na Casa
+                do Artesão.
               </p>
             </div>
 
-            <div className="gallery-preview">
-
-              {fotos.slice(0, 9).map((foto, index) => (
-                <figure
-                  className={`gallery-item gallery-item-${index + 1}`}
-                  key={foto.arquivo}
-                >
-                  <img
-                    src={`/fotos/${foto.arquivo}`}
-                    alt={foto.titulo}
-                  />
-
-                  <figcaption>
-                    <strong>{foto.titulo}</strong>
-                    <span>{foto.categoria}</span>
-                  </figcaption>
-                </figure>
-              ))}
-
-            </div>
-
-            <div className="center-button">
-              <a href="#galeria" className="button button-secondary">
-                Ver toda a galeria
-              </a>
-            </div>
-
+            <JustifiedGallery files={fotosArtesanato} />
           </div>
         </section>
 
-        {/* PROJETOS */}
         <section className="section section-dark" id="projetos">
           <div className="container projects-grid">
-
             <div className="projects-text">
-
               <span className="section-label section-label-light">
                 Projetos e comunidade
               </span>
 
               <h2>
-                O artesanato também
-                <span> aproxima pessoas.</span>
+                O artesanato também<span> aproxima pessoas.</span>
               </h2>
 
               <p>
-                A Casa do Artesão também participa de ações, atividades
-                culturais, encontros e iniciativas que aproximam o
-                artesanato da comunidade.
+                A Casa do Artesão também recebe produtos desenvolvidos em projetos e
+                iniciativas culturais que aproximam o artesanato da comunidade.
               </p>
 
               <p>
-                Esses momentos ajudam a divulgar o trabalho artesanal,
-                estimular a criatividade e fortalecer os vínculos
-                entre cultura e comunidade.
+                Entre as iniciativas mencionadas estão o Projeto Raiz, Cultura e Produto,
+                o Projeto Sou PG, o Souvenir Criativo e o Projeto Coleção Campos
+                Gerais.
               </p>
-
             </div>
 
             <div className="project-photo">
               <img
                 src="/fotos/foto 16.png"
                 alt="Atividade cultural com artesãos e comunidade"
+                loading="lazy"
               />
             </div>
-
           </div>
         </section>
 
-        {/* FOTO DO GRUPO */}
-        <section className="group-section">
-          <div className="container">
-
-            <div className="group-image-wrapper">
-              <img
-                src="/fotos/foto 17.png"
-                alt="Artesãos e participantes de uma atividade cultural"
-              />
-            </div>
-
-            <div className="group-caption">
-              <span className="section-label">
-                Pessoas que fazem parte dessa história
-              </span>
-
-              <h2>
-                Cultura se constrói
-                <span> em comunidade.</span>
-              </h2>
-            </div>
-
-          </div>
-        </section>
-
-        {/* GALERIA */}
-        <section className="section section-light" id="galeria">
-          <div className="container">
-
-            <div className="section-heading centered">
-              <span className="section-label">
-                Galeria
-              </span>
-
-              <h2>
-                Um pouco do trabalho
-                <span> da Casa do Artesão.</span>
-              </h2>
-
-              <p>
-                Uma seleção de registros que mostram o artesanato,
-                as atividades e os momentos vividos pela associação.
-              </p>
-            </div>
-
-            <div className="gallery-full">
-
-              {fotos.map((foto) => (
-                <figure
-                  className="gallery-full-item"
-                  key={`full-${foto.arquivo}`}
-                >
-                  <img
-                    src={`/fotos/${foto.arquivo}`}
-                    alt={foto.titulo}
-                    loading="lazy"
-                  />
-
-                  <figcaption>
-                    <strong>{foto.titulo}</strong>
-                  </figcaption>
-                </figure>
-              ))}
-
-              <figure className="gallery-full-item">
-                <img
-                  src="/fotos/foto concha.png"
-                  alt="Concha Acústica de Ponta Grossa"
-                  loading="lazy"
-                />
-
-                <figcaption>
-                  <strong>Concha Acústica</strong>
-                </figcaption>
-              </figure>
-
-            </div>
-
-          </div>
-        </section>
-
-        {/* VISITE */}
         <section className="visit-section" id="visite">
           <div className="container visit-grid">
-
             <div className="visit-text">
-
-              <span className="section-label">
-                Visite-nos
-              </span>
+              <span className="section-label">Visite-nos</span>
 
               <h2>
-                Venha conhecer
-                <span> a Casa do Artesão.</span>
+                Venha conhecer<span> a Casa do Artesão.</span>
               </h2>
 
               <p>
-                Estamos em uma localização central de Ponta Grossa,
-                na Concha Acústica da Praça Barão do Rio Branco.
+                Estamos no coração de Ponta Grossa, na Concha Acústica da Praça Barão do
+                Rio Branco, em uma localização central e próxima ao Colégio
+                Estadual Regente Feijó.
               </p>
 
               <div className="visit-details">
-
                 <div className="detail">
                   <div className="detail-icon">📍</div>
+
                   <div>
                     <strong>Onde estamos</strong>
+
                     <p>
-                      Concha Acústica<br />
-                      Praça Barão do Rio Branco<br />
+                      Concha Acústica
+                      <br />
+                      Praça Barão do Rio Branco
+                      <br />
+                      Próximo ao Colégio Estadual Regente Feijó
+                      <br />
                       Ponta Grossa – PR
                     </p>
                   </div>
@@ -446,15 +371,17 @@ function App() {
 
                 <div className="detail">
                   <div className="detail-icon">🕐</div>
+
                   <div>
                     <strong>Horário de atendimento</strong>
+
                     <p>
-                      Segunda a sexta: 9h às 17h<br />
+                      Segunda a sexta: 9h às 17h
+                      <br />
                       Sábado: 9h às 13h
                     </p>
                   </div>
                 </div>
-
               </div>
 
               <a
@@ -465,42 +392,33 @@ function App() {
               >
                 Abrir localização no mapa
               </a>
-
             </div>
 
-            <div className="visit-image">
+            <figure className="visit-image">
               <img
-                src="/fotos/foto concha.png"
-                alt="Concha Acústica na Praça Barão do Rio Branco"
+                src="/fotos/concha.png"
+                alt="Concha Acústica na Praça Barão do Rio Branco, em Ponta Grossa"
+                loading="lazy"
               />
-            </div>
-
+            </figure>
           </div>
         </section>
 
-        {/* CONTATO */}
         <section className="contact-section" id="contato">
           <div className="container">
-
             <div className="contact-box">
-
               <div className="contact-text">
-                <span className="section-label">
-                  Fale conosco
-                </span>
+                <span className="section-label">Fale conosco</span>
 
-                <h2>
-                  Quer saber mais?
-                </h2>
+                <h2>Quer saber mais?</h2>
 
                 <p>
-                  Entre em contato com a Associação Casa do Artesão
-                  pelos nossos canais.
+                  Para informações, pedidos e encomendas, entre em contato com a
+                  Associação Casa do Artesão pelos nossos canais.
                 </p>
               </div>
 
               <div className="contact-links">
-
                 <a
                   href="https://wa.me/554232291923"
                   target="_blank"
@@ -542,55 +460,36 @@ function App() {
                     <small>Casa do Artesão de Ponta Grossa</small>
                   </span>
                 </a>
-
               </div>
-
             </div>
-
           </div>
         </section>
-
       </main>
 
-      {/* FOOTER */}
       <footer className="footer">
         <div className="container footer-inner">
-
           <div className="footer-brand">
             <img
               src="/logocasadoartesao.png"
               alt="Associação Casa do Artesão"
             />
 
-            <p>
-              Artesanato, cultura e comunidade.
-            </p>
+            <p>Artesanato, cultura e comunidade.</p>
           </div>
 
           <div className="footer-info">
             <strong>Associação Casa do Artesão</strong>
-            <span>
-              Praça Barão do Rio Branco – Concha Acústica
-            </span>
-            <span>
-              Ponta Grossa – Paraná
-            </span>
+            <span>Praça Barão do Rio Branco – Concha Acústica</span>
+            <span>Ponta Grossa – Paraná</span>
           </div>
 
           <div className="footer-copy">
-            <span>
-              © {new Date().getFullYear()} Associação Casa do Artesão
-            </span>
-
-            <span>
-              Projeto de extensão acadêmica
-            </span>
+            <span>© {new Date().getFullYear()} Associação Casa do Artesão</span>
+            <span>Projeto de extensão acadêmica</span>
           </div>
-
         </div>
       </footer>
 
-      {/* WHATSAPP FLUTUANTE */}
       <a
         href="https://wa.me/554232291923"
         target="_blank"
@@ -601,7 +500,6 @@ function App() {
         <span>💬</span>
         <strong>WhatsApp</strong>
       </a>
-
     </div>
   );
 }
