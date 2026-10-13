@@ -159,7 +159,7 @@ function App() {
               </h1>
 
               <p>
-                Uma associação que reúne artesãos e artesãs, valorizando o trabalho artesanal,
+                Uma associação que reúne artesões e artesãs, valorizando o trabalho artesanal,
                 a cultura e a identidade de Ponta Grossa e dos Campos Gerais.
               </p>
 
